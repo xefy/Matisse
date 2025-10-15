@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import github.leavesczy.matisse.ImageEngine
 import github.leavesczy.matisse.MediaResource
+import github.leavesczy.matisse.MediaType
 import github.leavesczy.matisse.R
 import github.leavesczy.matisse.internal.logic.MatisseBottomBarViewState
 import github.leavesczy.matisse.internal.logic.MatisseMediaExtend
@@ -51,9 +53,11 @@ import github.leavesczy.matisse.internal.logic.MatissePageViewState
 internal fun MatissePage(
     pageViewState: MatissePageViewState,
     bottomBarViewState: MatisseBottomBarViewState,
+    mediaType: MediaType,
     onRequestTakePicture: () -> Unit,
+    onRequestTakeVideo: () -> Unit,
     onClickSure: () -> Unit,
-    selectMediaInFastSelectMode: (MediaResource) -> Unit
+    selectMediaInFastSelectMode: (MediaResource) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier
@@ -96,15 +100,33 @@ internal fun MatissePage(
             )
         ) {
             if (pageViewState.selectedBucket.supportCapture) {
-                item(
-                    key = "CaptureItem",
-                    contentType = "CaptureItem"
-                ) {
-                    CaptureItem(
-                        modifier = Modifier
-                            .matisseAnimateItem(lazyGridItemScope = this),
-                        onClick = onRequestTakePicture
-                    )
+
+
+                if (mediaType.includeImage) {
+                    item(
+                        key = "CaptureItem",
+                        contentType = "CaptureItem"
+                    ) {
+                        CaptureItem(
+                            modifier = Modifier
+                                .matisseAnimateItem(lazyGridItemScope = this),
+                            onClick = onRequestTakePicture
+                        )
+                    }
+                }
+
+                if (mediaType.includeVideo) {
+                    item(
+                        key = "CaptureVideoItem",
+                        contentType = "CaptureItem"
+                    ) {
+                        CaptureItem(
+                            modifier = Modifier
+                                .matisseAnimateItem(lazyGridItemScope = this),
+                            isVideo = true,
+                            onClick = onRequestTakeVideo
+                        )
+                    }
                 }
             }
             items(
@@ -142,6 +164,7 @@ internal fun MatissePage(
 @Composable
 private fun CaptureItem(
     modifier: Modifier,
+    isVideo: Boolean = false,
     onClick: () -> Unit
 ) {
     Box(
@@ -155,7 +178,7 @@ private fun CaptureItem(
         Icon(
             modifier = Modifier
                 .fillMaxSize(fraction = 0.5f),
-            imageVector = Icons.Filled.PhotoCamera,
+            imageVector = if (isVideo) Icons.Filled.Videocam else Icons.Filled.PhotoCamera,
             tint = colorResource(id = R.color.matisse_capture_item_icon_color),
             contentDescription = "Capture"
         )
@@ -178,6 +201,7 @@ private fun MediaItem(
             },
         contentAlignment = Alignment.Center
     ) {
+        // 获取到缩略图，视频也可以获取到
         imageEngine.Thumbnail(mediaResource = mediaResource.media)
         if (mediaResource.media.isVideo) {
             VideoIcon(

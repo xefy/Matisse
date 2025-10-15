@@ -14,6 +14,8 @@ import github.leavesczy.matisse.MediaResource
  */
 internal class MatisseCaptureActivity : BaseCaptureActivity() {
 
+    val isVideo: Boolean by lazy { intent.getBooleanExtra("isVideo", false) }
+
     private val matisseCapture by lazy(mode = LazyThreadSafetyMode.NONE) {
         IntentCompat.getParcelableExtra(
             intent,
@@ -27,7 +29,7 @@ internal class MatisseCaptureActivity : BaseCaptureActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestTakePictureOrVideo()
+        requestTakePictureOrVideo(isVideo = isVideo)
     }
 
     override fun dispatchTakePictureResult(mediaResource: MediaResource) {
