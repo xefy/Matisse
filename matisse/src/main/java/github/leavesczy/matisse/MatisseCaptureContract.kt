@@ -12,11 +12,12 @@ import github.leavesczy.matisse.internal.MatisseCaptureActivity
  * @Date: 2023/4/11 16:38
  * @Desc:
  */
-class MatisseCaptureContract : ActivityResultContract<MatisseCapture, MediaResource?>() {
+class MatisseCaptureContract(val isVideo: Boolean) : ActivityResultContract<MatisseCapture, MediaResource?>() {
 
     override fun createIntent(context: Context, input: MatisseCapture): Intent {
         val intent = Intent(context, MatisseCaptureActivity::class.java)
         intent.putExtra(MatisseCapture::class.java.name, input)
+        intent.putExtra("isVideo", isVideo)
         return intent
     }
 

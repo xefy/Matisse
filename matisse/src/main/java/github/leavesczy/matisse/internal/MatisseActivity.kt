@@ -78,7 +78,7 @@ internal class MatisseActivity : BaseCaptureActivity() {
                 MatissePage(
                     pageViewState = matisseViewModel.pageViewState,
                     bottomBarViewState = matisseViewModel.bottomBarViewState,
-                    onRequestTakePicture = ::requestTakePicture,
+                    onRequestTakePicture = ::requestTakePictureOrVideo,
                     onClickSure = ::onClickSure,
                     selectMediaInFastSelectMode = ::selectMediaInFastSelectMode
                 )
@@ -129,6 +129,7 @@ internal class MatisseActivity : BaseCaptureActivity() {
     override fun dispatchTakePictureResult(mediaResource: MediaResource) {
         val maxSelectable = matisseViewModel.maxSelectable
         val selectedResources = matisseViewModel.filterSelectedMedia()
+        // 判断是否存在非法文件
         val illegalMediaType = matisseViewModel.singleMediaType && selectedResources.any {
             it.isVideo
         }
@@ -142,6 +143,26 @@ internal class MatisseActivity : BaseCaptureActivity() {
     }
 
     override fun takePictureCancelled() {
+
+    }
+
+    override fun dispatchTakeVideoResult(mediaResource: MediaResource) {
+        val maxSelectable = matisseViewModel.maxSelectable
+        val selectedResources = matisseViewModel.filterSelectedMedia()
+        // 判断是否存在非法文件
+        val illegalMediaType = matisseViewModel.singleMediaType && selectedResources.any {
+            it.isImage
+        }
+        if (maxSelectable > 1 && (selectedResources.size in 1..<maxSelectable) && !illegalMediaType) {
+            val selectedResourcesMutable = selectedResources.toMutableList()
+            selectedResourcesMutable.add(element = mediaResource)
+            onSure(selected = selectedResourcesMutable)
+        } else {
+            onSure(selected = listOf(element = mediaResource))
+        }
+    }
+
+    override fun takeVideoCancelled() {
 
     }
 

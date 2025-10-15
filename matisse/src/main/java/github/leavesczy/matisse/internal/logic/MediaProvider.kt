@@ -29,22 +29,34 @@ internal object MediaProvider {
         val mimeType: String
     )
 
-    suspend fun createImage(
+    suspend fun createImageOrVideo(
         context: Context,
-        imageName: String,
-        mimeType: String
+        name: String,
+        mimeType: String,
+        isVideo: Boolean
     ): Uri? {
         return withContext(context = Dispatchers.Default) {
             try {
                 val contentValues = ContentValues()
-                contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, imageName)
-                contentValues.put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-                val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                if (isVideo) {
+                    contentValues.put(MediaStore.Video.Media.DISPLAY_NAME, name)
+                    contentValues.put(MediaStore.Video.Media.MIME_TYPE, mimeType)
+                    val videoCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                    } else {
+                        MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                    }
+                    context.contentResolver.insert(videoCollection, contentValues)
                 } else {
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                    contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, name)
+                    contentValues.put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+                    val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                    } else {
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                    }
+                    context.contentResolver.insert(imageCollection, contentValues)
                 }
-                context.contentResolver.insert(imageCollection, contentValues)
             } catch (throwable: Throwable) {
                 throwable.printStackTrace()
                 null

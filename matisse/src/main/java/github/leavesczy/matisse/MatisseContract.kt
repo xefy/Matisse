@@ -12,11 +12,12 @@ import github.leavesczy.matisse.internal.MatisseActivity
  * @Date: 2022/6/2 15:30
  * @Desc:
  */
-class MatisseContract : ActivityResultContract<Matisse, List<MediaResource>?>() {
+class MatisseContract(val isVideo: Boolean) : ActivityResultContract<Matisse, List<MediaResource>?>() {
 
     override fun createIntent(context: Context, input: Matisse): Intent {
         val intent = Intent(context, MatisseActivity::class.java)
         intent.putExtra(Matisse::class.java.name, input)
+        intent.putExtra("isVideo", isVideo)
         return intent
     }
 

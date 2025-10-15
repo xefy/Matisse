@@ -41,9 +41,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import coil3.compose.AsyncImage
+import github.leavesczy.matisse.MatisseCapture
 import github.leavesczy.matisse.MatisseCaptureContract
 import github.leavesczy.matisse.MatisseContract
 import github.leavesczy.matisse.MediaResource
+import github.leavesczy.matisse.MediaStoreCaptureStrategy
 import github.leavesczy.matisse.MediaType
 import github.leavesczy.matisse.samples.logic.MainPageViewState
 import github.leavesczy.matisse.samples.logic.MainViewModel
@@ -66,11 +68,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val takePictureLauncher =
-                rememberLauncherForActivityResult(contract = MatisseCaptureContract()) {
+                rememberLauncherForActivityResult(contract = MatisseCaptureContract(isVideo = false)) {
                     mainViewModel.takePictureResult(result = it)
                 }
+            val takeVideoLauncher =
+                rememberLauncherForActivityResult(contract = MatisseCaptureContract(isVideo = true)) {
+                    mainViewModel.takeVideoResult(result = it)
+                }
             val mediaPickerLauncher =
-                rememberLauncherForActivityResult(contract = MatisseContract()) {
+                rememberLauncherForActivityResult(contract = MatisseContract(isVideo = false)) {
                     mainViewModel.mediaPickerResult(result = it)
                 }
             MatisseTheme {
@@ -103,6 +109,12 @@ class MainActivity : AppCompatActivity() {
                         if (matisseCapture != null) {
                             takePictureLauncher.launch(matisseCapture)
                         }
+                    },
+                    takeVideo = {
+                        val matisseCapture = mainViewModel.buildVideoCaptureStrategy()
+                        if (matisseCapture != null) {
+                            takeVideoLauncher.launch(matisseCapture)
+                        }
                     }
                 )
             }
@@ -126,7 +138,8 @@ private fun MainPage(
     imageOnly: () -> Unit,
     videoOnly: () -> Unit,
     gifAndMp4: () -> Unit,
-    takePicture: () -> Unit
+    takePicture: () -> Unit,
+    takeVideo: () -> Unit
 ) {
     Scaffold(
         modifier = Modifier
@@ -298,6 +311,11 @@ private fun MainPage(
                 text = "直接拍照",
                 enabled = pageViewState.captureStrategy != MediaCaptureStrategy.Close,
                 onClick = takePicture
+            )
+            Button(
+                text = "直接录像",
+                enabled = pageViewState.captureStrategy != MediaCaptureStrategy.Close,
+                onClick = takeVideo
             )
             Button(
                 text = "切换主题",

@@ -39,27 +39,28 @@ interface CaptureStrategy : Parcelable {
     fun shouldRequestWriteExternalStoragePermission(context: Context): Boolean
 
     /**
-     * 生成图片 Uri
+     * 生成图片/视频 Uri
      */
-    suspend fun createImageUri(context: Context): Uri?
+    suspend fun createImageOrVideoUri(context: Context, isVideo: Boolean): Uri?
 
     /**
-     * 获取拍照结果
+     * 获取拍照/录像结果
      */
-    suspend fun loadResource(context: Context, imageUri: Uri): MediaResource?
+    suspend fun loadResource(context: Context, uri: Uri, isVideo: Boolean): MediaResource?
 
     /**
-     * 当用户取消拍照时调用
+     * 当用户取消拍照/录像时调用
      */
-    suspend fun onTakePictureCanceled(context: Context, imageUri: Uri)
+    suspend fun onTakePictureOrVideoCanceled(context: Context, uri: Uri)
 
     /**
-     * 生成图片名
+     * 生成图片/视频名
      */
-    suspend fun createImageName(context: Context): String {
+    suspend fun createImageOrVideoName(context: Context, isVideo: Boolean): String {
         return withContext(context = Dispatchers.Default) {
             val time = SimpleDateFormat("yyyyMMdd_HHmmssSSS", Locale.US).format(Date())
-            "IMG_$time.jpg"
+            val type = if (isVideo) "video" else "IMG"
+            "${type}_$time.jpg"
         }
     }
 
@@ -74,6 +75,7 @@ interface CaptureStrategy : Parcelable {
 }
 
 private const val JPG_MIME_TYPE = "image/jpeg"
+private const val VIDEO_MIME_TYPE = "video/mp4"
 
 /**
  *  通过 FileProvider 生成 ImageUri
@@ -93,9 +95,9 @@ open class FileProviderCaptureStrategy(
         return false
     }
 
-    final override suspend fun createImageUri(context: Context): Uri? {
+    final override suspend fun createImageOrVideoUri(context: Context, isVideo: Boolean): Uri? {
         return withContext(context = Dispatchers.Main.immediate) {
-            val tempFile = createTempFile(context = context)
+            val tempFile = createTempFile(context = context, isVideo = isVideo)
             if (tempFile != null) {
                 val uri = FileProvider.getUriForFile(context, authority, tempFile)
                 uriFileMap[uri] = tempFile
@@ -106,10 +108,10 @@ open class FileProviderCaptureStrategy(
         }
     }
 
-    private suspend fun createTempFile(context: Context): File? {
+    private suspend fun createTempFile(context: Context, isVideo: Boolean): File? {
         return withContext(context = Dispatchers.IO) {
             val picturesDirectory = getAuthorityDirectory(context = context)
-            val file = File(picturesDirectory, createImageName(context = context))
+            val file = File(picturesDirectory, createImageOrVideoName(context = context, isVideo = isVideo))
             if (file.createNewFile()) {
                 file
             } else {
@@ -122,23 +124,23 @@ open class FileProviderCaptureStrategy(
         return context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
     }
 
-    final override suspend fun loadResource(context: Context, imageUri: Uri): MediaResource {
+    final override suspend fun loadResource(context: Context, uri: Uri, isVideo: Boolean): MediaResource {
         return withContext(context = Dispatchers.Main.immediate) {
-            val imageFile = uriFileMap[imageUri]!!
-            uriFileMap.remove(key = imageUri)
+            val imageFile = uriFileMap[uri]!!
+            uriFileMap.remove(key = uri)
             MediaResource(
-                uri = imageUri,
+                uri = uri,
                 path = imageFile.absolutePath,
                 name = imageFile.name,
-                mimeType = JPG_MIME_TYPE
+                mimeType = if (isVideo) VIDEO_MIME_TYPE else JPG_MIME_TYPE
             )
         }
     }
 
-    final override suspend fun onTakePictureCanceled(context: Context, imageUri: Uri) {
+    final override suspend fun onTakePictureOrVideoCanceled(context: Context, uri: Uri) {
         withContext(context = Dispatchers.Main.immediate) {
-            val imageFile = uriFileMap[imageUri]
-            uriFileMap.remove(key = imageUri)
+            val imageFile = uriFileMap[uri]
+            uriFileMap.remove(key = uri)
             withContext(context = Dispatchers.IO) {
                 if (imageFile != null && imageFile.exists()) {
                     imageFile.delete()
@@ -159,7 +161,7 @@ open class FileProviderCaptureStrategy(
  *  所拍的照片会保存在系统相册中
  */
 @Parcelize
-data class MediaStoreCaptureStrategy(private val extra: Bundle = Bundle.EMPTY) : CaptureStrategy {
+data class MediaStoreCaptureStrategy(private val extra: Bundle = Bundle.EMPTY, private val isVideo: Boolean = false) : CaptureStrategy {
 
     override fun shouldRequestWriteExternalStoragePermission(context: Context): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -171,18 +173,19 @@ data class MediaStoreCaptureStrategy(private val extra: Bundle = Bundle.EMPTY) :
         ) == PackageManager.PERMISSION_DENIED
     }
 
-    override suspend fun createImageUri(context: Context): Uri? {
-        return MediaProvider.createImage(
+    override suspend fun createImageOrVideoUri(context: Context, isVideo: Boolean): Uri? {
+        return MediaProvider.createImageOrVideo(
             context = context,
-            imageName = createImageName(context = context),
-            mimeType = JPG_MIME_TYPE
+            name = createImageOrVideoName(context = context, isVideo = isVideo),
+            mimeType = if (isVideo) VIDEO_MIME_TYPE else JPG_MIME_TYPE,
+            isVideo = isVideo
         )
     }
 
-    override suspend fun loadResource(context: Context, imageUri: Uri): MediaResource? {
+    override suspend fun loadResource(context: Context, uri: Uri, isVideo: Boolean): MediaResource? {
         return withContext(context = Dispatchers.Default) {
             repeat(times = 10) {
-                val result = loadResources(context = context, uri = imageUri)
+                val result = loadResources(context = context, uri = uri)
                 if (result != null) {
                     return@withContext result
                 }
@@ -206,8 +209,8 @@ data class MediaStoreCaptureStrategy(private val extra: Bundle = Bundle.EMPTY) :
         }
     }
 
-    override suspend fun onTakePictureCanceled(context: Context, imageUri: Uri) {
-        MediaProvider.deleteMedia(context = context, uri = imageUri)
+    override suspend fun onTakePictureOrVideoCanceled(context: Context, uri: Uri) {
+        MediaProvider.deleteMedia(context = context, uri = uri)
     }
 
     override fun getCaptureExtra(): Bundle {
@@ -238,20 +241,20 @@ data class SmartCaptureStrategy(
         return proxy.shouldRequestWriteExternalStoragePermission(context = context)
     }
 
-    override suspend fun createImageUri(context: Context): Uri? {
-        return proxy.createImageUri(context = context)
+    override suspend fun createImageOrVideoUri(context: Context, isVideo: Boolean): Uri? {
+        return proxy.createImageOrVideoUri(context = context, isVideo = isVideo)
     }
 
-    override suspend fun loadResource(context: Context, imageUri: Uri): MediaResource? {
-        return proxy.loadResource(context = context, imageUri = imageUri)
+    override suspend fun loadResource(context: Context, uri: Uri, isVideo: Boolean): MediaResource? {
+        return proxy.loadResource(context = context, uri = uri, isVideo = isVideo)
     }
 
-    override suspend fun onTakePictureCanceled(context: Context, imageUri: Uri) {
-        proxy.onTakePictureCanceled(context = context, imageUri = imageUri)
+    override suspend fun onTakePictureOrVideoCanceled(context: Context, uri: Uri) {
+        proxy.onTakePictureOrVideoCanceled(context = context, uri = uri)
     }
 
-    override suspend fun createImageName(context: Context): String {
-        return proxy.createImageName(context = context)
+    override suspend fun createImageOrVideoName(context: Context, isVideo: Boolean): String {
+        return proxy.createImageOrVideoName(context = context, isVideo = isVideo)
     }
 
     override fun getCaptureExtra(): Bundle {

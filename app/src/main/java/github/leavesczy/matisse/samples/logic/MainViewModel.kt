@@ -200,6 +200,11 @@ class MainViewModel : ViewModel() {
         return MatisseCapture(captureStrategy = captureStrategy)
     }
 
+    fun buildVideoCaptureStrategy(): MatisseCapture? {
+        val captureStrategy = MediaStoreCaptureStrategy(isVideo = true)
+        return MatisseCapture(captureStrategy = captureStrategy)
+    }
+
     fun takePictureResult(result: MediaResource?) {
         if (result != null) {
             pageViewState = pageViewState.copy(mediaList = listOf(element = result))
@@ -209,6 +214,12 @@ class MainViewModel : ViewModel() {
     fun mediaPickerResult(result: List<MediaResource>?) {
         if (!result.isNullOrEmpty()) {
             pageViewState = pageViewState.copy(mediaList = result)
+        }
+    }
+
+    fun takeVideoResult(result: MediaResource?) {
+        if (result != null) {
+            pageViewState = pageViewState.copy(mediaList = listOf(element = result))
         }
     }
 
