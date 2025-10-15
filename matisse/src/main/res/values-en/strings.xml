@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="matisse_default_bucket_name">All</string>
+    <string name="matisse_read_media_permission_denied">Please grant access to the album and try again</string>
+    <string name="matisse_write_external_storage_permission_denied">Please grant storage write permission and try again</string>
+    <string name="matisse_camera_permission_denied">Please grant camera permission and try again</string>
+    <string name="matisse_limit_the_number_of_image">You can only select a maximum of %d images</string>
+    <string name="matisse_limit_the_number_of_video">You can only select a maximum of %d videos</string>
+    <string name="matisse_limit_the_number_of_media">You can only select a maximum of %d images or videos</string>
+    <string name="matisse_cannot_select_both_picture_and_video_at_the_same_time">Cannot select pictures and videos at the same time</string>
+    <string name="matisse_no_apps_support_take_picture">No apps available for taking photos</string>
+    <string name="matisse_preview">Preview</string>
+    <string name="matisse_sure">Sure(%d/%d)</string>
+    <string name="matisse_back">Back</string>
+</resources>
