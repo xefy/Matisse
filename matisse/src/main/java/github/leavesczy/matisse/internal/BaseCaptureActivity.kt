@@ -16,6 +16,7 @@ import github.leavesczy.matisse.CaptureStrategy
 import github.leavesczy.matisse.MediaResource
 import github.leavesczy.matisse.R
 import github.leavesczy.matisse.internal.logic.MatisseTakePictureContract
+import github.leavesczy.matisse.internal.logic.MatisseTakeVideoContract
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,6 +27,8 @@ import kotlinx.coroutines.withContext
  * @Desc:
  */
 internal abstract class BaseCaptureActivity : AppCompatActivity() {
+
+    val isVideo: Boolean by lazy { intent.getBooleanExtra("isVideo", false) }
 
     protected abstract val captureStrategy: CaptureStrategy
 
@@ -42,21 +45,32 @@ internal abstract class BaseCaptureActivity : AppCompatActivity() {
     private val requestCameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) {
-                takePicture()
+                if (isVideo) {
+                    takeVideo()
+                } else {
+                    takePicture()
+                }
             } else {
                 showToast(id = R.string.matisse_camera_permission_denied)
                 takePictureCancelled()
             }
         }
 
+
     private val takePictureLauncher =
         registerForActivityResult(MatisseTakePictureContract()) { successful ->
             takePictureResult(successful = successful)
         }
 
-    private var tempImageUriForTakePicture: Uri? = null
+    private val takeVideoLauncher =
+        registerForActivityResult(MatisseTakeVideoContract()) { successful ->
+            takeVideoResult(successful = successful)
+        }
 
-    protected fun requestTakePicture() {
+    private var tempImageUriForTakePicture: Uri? = null
+    private var tempVideoUriForTakeVideo: Uri? = null
+
+    protected fun requestTakePictureOrVideo() {
         if (captureStrategy.shouldRequestWriteExternalStoragePermission(context = applicationContext)) {
             requestWriteExternalStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         } else {
@@ -74,10 +88,15 @@ internal abstract class BaseCaptureActivity : AppCompatActivity() {
                 context = applicationContext,
                 permission = cameraPermission
             )
+
             if (requirePermissionToTakePhotos) {
                 requestCameraPermissionLauncher.launch(cameraPermission)
             } else {
-                takePicture()
+                if (isVideo) {
+                    takeVideo()
+                } else {
+                    takePicture()
+                }
             }
         }
     }
@@ -87,7 +106,7 @@ internal abstract class BaseCaptureActivity : AppCompatActivity() {
             tempImageUriForTakePicture = null
             val captureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
             if (captureIntent.resolveActivity(packageManager) != null) {
-                val imageUri = captureStrategy.createImageUri(context = applicationContext)
+                val imageUri = captureStrategy.createImageOrVideoUri(context = applicationContext, isVideo = false)
                 if (imageUri != null) {
                     tempImageUriForTakePicture = imageUri
                     takePictureLauncher.launch(
@@ -113,16 +132,17 @@ internal abstract class BaseCaptureActivity : AppCompatActivity() {
                 if (successful) {
                     val resource = captureStrategy.loadResource(
                         context = applicationContext,
-                        imageUri = imageUri
+                        uri = imageUri,
+                        isVideo = false
                     )
                     if (resource != null) {
                         dispatchTakePictureResult(mediaResource = resource)
                         return@launch
                     }
                 } else {
-                    captureStrategy.onTakePictureCanceled(
+                    captureStrategy.onTakePictureOrVideoCanceled(
                         context = applicationContext,
-                        imageUri = imageUri
+                        uri = imageUri
                     )
                 }
             }
@@ -130,9 +150,62 @@ internal abstract class BaseCaptureActivity : AppCompatActivity() {
         }
     }
 
+    private fun takeVideo() {
+        lifecycleScope.launch(context = Dispatchers.Main.immediate) {
+            tempVideoUriForTakeVideo = null
+            val captureIntent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+            if (captureIntent.resolveActivity(packageManager) != null) {
+                val videoUri = captureStrategy.createImageOrVideoUri(context = applicationContext, isVideo = true)
+                if (videoUri != null) {
+                    tempVideoUriForTakeVideo = videoUri
+                    takeVideoLauncher.launch(
+                        MatisseTakeVideoContract.MatisseTakeVideoContractParams(
+                            uri = videoUri,
+                            extra = captureStrategy.getCaptureExtra()
+                        )
+                    )
+                    return@launch
+                }
+            } else {
+                showToast(id = R.string.matisse_no_apps_support_take_picture)
+            }
+            takeVideoCancelled()
+        }
+    }
+
+    private fun takeVideoResult(successful: Boolean) {
+        lifecycleScope.launch(context = Dispatchers.Main.immediate) {
+            val videoUri = tempVideoUriForTakeVideo
+            tempVideoUriForTakeVideo = null
+            if (videoUri != null) {
+                if (successful) {
+                    val resource = captureStrategy.loadResource(
+                        context = applicationContext,
+                        uri = videoUri,
+                        isVideo = true
+                    )
+                    if (resource != null) {
+                        dispatchTakeVideoResult(mediaResource = resource)
+                        return@launch
+                    }
+                } else {
+                    captureStrategy.onTakePictureOrVideoCanceled(
+                        context = applicationContext,
+                        uri = videoUri
+                    )
+                }
+            }
+            takeVideoCancelled()
+        }
+    }
+
     protected abstract fun dispatchTakePictureResult(mediaResource: MediaResource)
 
     protected abstract fun takePictureCancelled()
+
+    protected abstract fun dispatchTakeVideoResult(mediaResource: MediaResource)
+
+    protected abstract fun takeVideoCancelled()
 
     protected fun permissionGranted(context: Context, permissions: Array<String>): Boolean {
         return permissions.all {
