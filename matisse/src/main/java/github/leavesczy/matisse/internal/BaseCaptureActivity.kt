@@ -28,14 +28,22 @@ import kotlinx.coroutines.withContext
  */
 internal abstract class BaseCaptureActivity : AppCompatActivity() {
 
-    val isVideo: Boolean by lazy { intent.getBooleanExtra("isVideo", false) }
-
     protected abstract val captureStrategy: CaptureStrategy
 
     private val requestWriteExternalStoragePermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) {
-                requestCameraPermissionIfNeed()
+                requestCameraPermissionIfNeed(isVideo = false)
+            } else {
+                showToast(id = R.string.matisse_write_external_storage_permission_denied)
+                takePictureCancelled()
+            }
+        }
+
+    private val requestWriteExternalStoragePermissionForVideoLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                requestCameraPermissionIfNeed(isVideo = true)
             } else {
                 showToast(id = R.string.matisse_write_external_storage_permission_denied)
                 takePictureCancelled()
@@ -45,14 +53,20 @@ internal abstract class BaseCaptureActivity : AppCompatActivity() {
     private val requestCameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) {
-                if (isVideo) {
-                    takeVideo()
-                } else {
-                    takePicture()
-                }
+                takePicture()
             } else {
                 showToast(id = R.string.matisse_camera_permission_denied)
                 takePictureCancelled()
+            }
+        }
+
+    private val requestCameraPermissionForVideoLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                takeVideo()
+            } else {
+                showToast(id = R.string.matisse_camera_permission_denied)
+                takeVideoCancelled()
             }
         }
 
@@ -70,15 +84,19 @@ internal abstract class BaseCaptureActivity : AppCompatActivity() {
     private var tempImageUriForTakePicture: Uri? = null
     private var tempVideoUriForTakeVideo: Uri? = null
 
-    protected fun requestTakePictureOrVideo() {
+    protected fun requestTakePictureOrVideo(isVideo: Boolean) {
         if (captureStrategy.shouldRequestWriteExternalStoragePermission(context = applicationContext)) {
-            requestWriteExternalStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            if (isVideo) {
+                requestWriteExternalStoragePermissionForVideoLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            } else {
+                requestWriteExternalStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
         } else {
-            requestCameraPermissionIfNeed()
+            requestCameraPermissionIfNeed(isVideo = isVideo)
         }
     }
 
-    private fun requestCameraPermissionIfNeed() {
+    private fun requestCameraPermissionIfNeed(isVideo: Boolean) {
         lifecycleScope.launch(context = Dispatchers.Main.immediate) {
             val cameraPermission = Manifest.permission.CAMERA
             val requirePermissionToTakePhotos = containsPermission(
@@ -90,7 +108,11 @@ internal abstract class BaseCaptureActivity : AppCompatActivity() {
             )
 
             if (requirePermissionToTakePhotos) {
-                requestCameraPermissionLauncher.launch(cameraPermission)
+                if (isVideo) {
+                    requestCameraPermissionForVideoLauncher.launch(cameraPermission)
+                } else {
+                    requestCameraPermissionLauncher.launch(cameraPermission)
+                }
             } else {
                 if (isVideo) {
                     takeVideo()

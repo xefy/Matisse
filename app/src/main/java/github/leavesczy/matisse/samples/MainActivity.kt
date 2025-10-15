@@ -41,11 +41,9 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import coil3.compose.AsyncImage
-import github.leavesczy.matisse.MatisseCapture
 import github.leavesczy.matisse.MatisseCaptureContract
 import github.leavesczy.matisse.MatisseContract
 import github.leavesczy.matisse.MediaResource
-import github.leavesczy.matisse.MediaStoreCaptureStrategy
 import github.leavesczy.matisse.MediaType
 import github.leavesczy.matisse.samples.logic.MainPageViewState
 import github.leavesczy.matisse.samples.logic.MainViewModel

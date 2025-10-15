@@ -78,9 +78,11 @@ internal class MatisseActivity : BaseCaptureActivity() {
                 MatissePage(
                     pageViewState = matisseViewModel.pageViewState,
                     bottomBarViewState = matisseViewModel.bottomBarViewState,
-                    onRequestTakePicture = ::requestTakePictureOrVideo,
+                    mediaType = matisseViewModel.mediaType,
+                    onRequestTakePicture = { requestTakePictureOrVideo(isVideo = false) },
+                    onRequestTakeVideo = { requestTakePictureOrVideo(isVideo = true) },
                     onClickSure = ::onClickSure,
-                    selectMediaInFastSelectMode = ::selectMediaInFastSelectMode
+                    selectMediaInFastSelectMode = ::selectMediaInFastSelectMode,
                 )
                 MatissePreviewPage(
                     pageViewState = matisseViewModel.previewPageViewState,
