@@ -133,7 +133,7 @@ open class FileProviderCaptureStrategy(
                 path = imageFile.absolutePath,
                 name = imageFile.name,
                 mimeType = if (isVideo) VIDEO_MIME_TYPE else JPG_MIME_TYPE,
-                size = MediaProvider.getFileRealSize(context = context, uri = imageUri) ?: 0L
+                size = MediaProvider.getFileRealSize(context = context, uri = uri) ?: 0L
             )
         }
     }
