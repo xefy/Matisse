@@ -1,5 +1,7 @@
 package github.leavesczy.matisse.internal
 
+import android.content.Context
+import android.content.res.Configuration
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.widget.MediaController
@@ -8,6 +10,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.IntentCompat
 import androidx.core.view.WindowCompat
+import github.leavesczy.matisse.Matisse
 import github.leavesczy.matisse.MediaResource
 import github.leavesczy.matisse.R
 
@@ -17,6 +20,17 @@ import github.leavesczy.matisse.R
  * @Desc:
  */
 internal class MatisseVideoViewActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        val locale = Matisse.getLocale()
+        if (locale != null) {
+            val configuration = Configuration(newBase.resources.configuration)
+            configuration.setLocale(locale)
+            super.attachBaseContext(newBase.createConfigurationContext(configuration))
+        } else {
+            super.attachBaseContext(newBase)
+        }
+    }
 
     private val mediaResource by lazy(mode = LazyThreadSafetyMode.NONE) {
         IntentCompat.getParcelableExtra(

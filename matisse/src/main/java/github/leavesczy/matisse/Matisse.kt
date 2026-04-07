@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Parcelable
 import androidx.compose.runtime.Stable
 import kotlinx.parcelize.Parcelize
+import java.util.Locale
 
 /**
  * @Author: leavesCZY
@@ -32,6 +33,31 @@ data class Matisse(
     val mediaFilter: MediaFilter? = null,
     val captureStrategy: CaptureStrategy? = null
 ) : Parcelable {
+
+    companion object {
+
+        private var globalLocale: Locale? = null
+
+        /**
+         * // 设置为英文
+         * Matisse.setLocale(Locale.ENGLISH)
+         *
+         * // 或者设置为简体中文
+         * Matisse.setLocale(Locale.CHINESE)
+         *
+         * // 恢复跟随系统
+         * Matisse.setLocale(null)
+         */
+        @JvmStatic
+        fun setLocale(locale: Locale?) {
+            globalLocale = locale
+        }
+
+        internal fun getLocale(): Locale? {
+            return globalLocale
+        }
+
+    }
 
     init {
         if (maxSelectable < 1) {

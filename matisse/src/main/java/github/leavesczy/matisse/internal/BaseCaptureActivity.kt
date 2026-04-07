@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.provider.MediaStore
 import android.widget.Toast
@@ -13,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import github.leavesczy.matisse.CaptureStrategy
+import github.leavesczy.matisse.Matisse
 import github.leavesczy.matisse.MediaResource
 import github.leavesczy.matisse.R
 import github.leavesczy.matisse.internal.logic.MatisseTakePictureContract
@@ -20,6 +22,7 @@ import github.leavesczy.matisse.internal.logic.MatisseTakeVideoContract
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 /**
  * @Author: leavesCZY
@@ -27,6 +30,17 @@ import kotlinx.coroutines.withContext
  * @Desc:
  */
 internal abstract class BaseCaptureActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        val locale = Matisse.getLocale()
+        if (locale != null) {
+            val configuration = Configuration(newBase.resources.configuration)
+            configuration.setLocale(locale)
+            super.attachBaseContext(newBase.createConfigurationContext(configuration))
+        } else {
+            super.attachBaseContext(newBase)
+        }
+    }
 
     protected abstract val captureStrategy: CaptureStrategy
 

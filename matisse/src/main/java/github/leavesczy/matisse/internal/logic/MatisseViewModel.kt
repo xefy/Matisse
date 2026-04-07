@@ -2,6 +2,7 @@ package github.leavesczy.matisse.internal.logic
 
 import android.app.Application
 import android.content.Context
+import android.content.res.Configuration
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -27,8 +28,13 @@ import kotlinx.coroutines.withContext
 internal class MatisseViewModel(application: Application, matisse: Matisse) :
     AndroidViewModel(application) {
 
-    private val context: Context
-        get() = getApplication()
+    private val context: Context = if (Matisse.getLocale() != null) {
+        val configuration = Configuration(application.resources.configuration)
+        configuration.setLocale(Matisse.getLocale())
+        application.createConfigurationContext(configuration)
+    } else {
+        application
+    }
 
     val maxSelectable = matisse.maxSelectable
 
