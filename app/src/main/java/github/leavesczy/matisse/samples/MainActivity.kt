@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import coil3.compose.AsyncImage
+import github.leavesczy.matisse.Matisse
 import github.leavesczy.matisse.MatisseCaptureContract
 import github.leavesczy.matisse.MatisseContract
 import github.leavesczy.matisse.MediaResource
@@ -52,6 +53,7 @@ import github.leavesczy.matisse.samples.logic.MediaCaptureStrategy
 import github.leavesczy.matisse.samples.logic.MediaFilterStrategy
 import github.leavesczy.matisse.samples.logic.MediaImageEngine
 import github.leavesczy.matisse.samples.theme.MatisseTheme
+import java.util.Locale
 
 /**
  * @Author: leavesCZY
@@ -319,6 +321,24 @@ private fun MainPage(
             Button(
                 text = "切换主题",
                 onClick = pageViewState.switchTheme
+            )
+            Button(
+                text = "切换中文",
+                onClick = {
+                    Matisse.setLocale(Locale.CHINESE)
+                }
+            )
+            Button(
+                text = "切换英文",
+                onClick = {
+                    Matisse.setLocale(Locale.ENGLISH)
+                }
+            )
+            Button(
+                text = "跟随系统",
+                onClick = {
+                    Matisse.setLocale(null)
+                }
             )
             for (mediaResource in pageViewState.mediaList) {
                 MediaResourceItem(mediaResource = mediaResource)
